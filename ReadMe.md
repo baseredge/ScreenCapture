@@ -89,6 +89,10 @@ msbuild ScreenCapture.slnx /t:Build /p:Configuration=Release /p:Platform=x64
 
 输出文件：`x64\Release\ScreenCapture.exe`。
 
+## 自动构建
+
+每次向 `main` 推送后，GitHub Actions 会在 Windows Runner 上自动构建，并更新私有仓库中的 `latest` Release。Release 中包含 Windows x64 ZIP 包和 SHA-256 校验文件。
+
 ## 许可证与第三方组件
 
 - 原项目代码继续使用仓库中的 [MIT License](./LICENSE)，不得删除原版权和许可文本。
