@@ -48,9 +48,13 @@ jobs:
           "MSBUILD=$msbuild" >> $env:GITHUB_ENV
           & $msbuild -version
 
+      - name: Build Ling Yoga
+        shell: pwsh
+        run: '& $env:MSBUILD ..\Ling\yoga\yoga.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /m'
+
       - name: Build Ling
         shell: pwsh
-        run: '& $env:MSBUILD ..\Ling\Ling.slnx /t:Build /p:Configuration=Release /p:Platform=x64 /m'
+        run: '& $env:MSBUILD ..\Ling\Ling.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /m'
 
       - name: Build ScreenCapture
         shell: pwsh
