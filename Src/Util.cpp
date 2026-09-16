@@ -41,6 +41,119 @@ namespace {
 		return SUCCEEDED(encoder->Commit());
 	}
 
+	// JPEG/BMP 不接受带 alpha 的 32 位格式作为稳定的公共输出格式，统一转换成
+	// 紧凑的 BGR24。截图入参仍保持 BGRA，剪切板也继续走上面的 PNG + DIB 多格式方案。
+	bool encodeBgrImage(IStream* stream, const GUID& container, const int w, const int h,
+		BYTE* data, int jpegQuality)
+	{
+		// 24bpp 的每行按 BMP/WIC 的习惯补到 4 字节边界，避免宽度不是 4 的倍数时
+		// 某些编码器拒绝不对齐的 stride。
+		const UINT rowBytes = ((UINT)w * 3 + 3u) & ~3u;
+		const UINT imgBytes = rowBytes * (UINT)h;
+		std::vector<BYTE> bgr((size_t)imgBytes);
+		for (int row = 0; row < h; ++row) {
+			const BYTE* src = data + (size_t)row * (size_t)w * 4;
+			BYTE* dst = bgr.data() + (size_t)row * rowBytes;
+			for (int col = 0; col < w; ++col) {
+				dst[0] = src[0];
+				dst[1] = src[1];
+				dst[2] = src[2];
+				src += 4;
+				dst += 3;
+			}
+		}
+
+		ComPtr<IWICImagingFactory> factory;
+		auto hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+			IID_PPV_ARGS(factory.GetAddressOf()));
+		if (FAILED(hr)) return false;
+		ComPtr<IWICBitmapEncoder> encoder;
+		hr = factory->CreateEncoder(container, nullptr, encoder.GetAddressOf());
+		if (FAILED(hr)) return false;
+		hr = encoder->Initialize(stream, WICBitmapEncoderNoCache);
+		if (FAILED(hr)) return false;
+		ComPtr<IWICBitmapFrameEncode> frame;
+		ComPtr<IPropertyBag2> options;
+		hr = encoder->CreateNewFrame(frame.GetAddressOf(), options.GetAddressOf());
+		if (FAILED(hr)) return false;
+
+		if (IsEqualGUID(container, GUID_ContainerFormatJpeg) && options) {
+			PROPBAG2 option{};
+			option.pstrName = const_cast<LPOLESTR>(L"ImageQuality");
+			VARIANT value{};
+			VariantInit(&value);
+			value.vt = VT_R4;
+			value.fltVal = std::clamp(jpegQuality, 1, 100) / 100.0f;
+			options->Write(1, &option, &value);
+			VariantClear(&value);
+		}
+
+		hr = frame->Initialize(options.Get());
+		if (FAILED(hr)) return false;
+		hr = frame->SetSize((UINT)w, (UINT)h);
+		if (FAILED(hr)) return false;
+		WICPixelFormatGUID fmt = GUID_WICPixelFormat24bppBGR;
+		hr = frame->SetPixelFormat(&fmt);
+		if (FAILED(hr) || !IsEqualGUID(fmt, GUID_WICPixelFormat24bppBGR)) return false;
+		hr = frame->WritePixels((UINT)h, rowBytes, imgBytes, bgr.data());
+		if (FAILED(hr)) return false;
+		hr = frame->Commit();
+		if (FAILED(hr)) return false;
+		return SUCCEEDED(encoder->Commit());
+	}
+
+	std::wstring imageExtension(const std::wstring& path)
+	{
+		auto ext = std::filesystem::path(path).extension().wstring();
+		std::transform(ext.begin(), ext.end(), ext.begin(), [](wchar_t ch) { return (wchar_t)towlower(ch); });
+		if (ext == L".jpeg") ext = L".jpg";
+		return ext;
+	}
+
+	HGLOBAL makeFileDropData(const std::wstring& filePath)
+	{
+		if (filePath.empty() || filePath.size() > (SIZE_MAX / sizeof(wchar_t)) - 2) return nullptr;
+		const SIZE_T pathBytes = (filePath.size() + 2) * sizeof(wchar_t);
+		if (pathBytes > SIZE_MAX - sizeof(DROPFILES)) return nullptr;
+		const SIZE_T totalSize = sizeof(DROPFILES) + pathBytes;
+		auto hGlobal = GlobalAlloc(GMEM_MOVEABLE, totalSize);
+		if (!hGlobal) return nullptr;
+		auto pDropFiles = static_cast<DROPFILES*>(GlobalLock(hGlobal));
+		if (!pDropFiles) {
+			GlobalFree(hGlobal);
+			return nullptr;
+		}
+		pDropFiles->pFiles = sizeof(DROPFILES);
+		pDropFiles->fWide = TRUE;
+		auto dest = reinterpret_cast<wchar_t*>(pDropFiles + 1);
+		CopyMemory(dest, filePath.c_str(), filePath.size() * sizeof(wchar_t));
+		dest[filePath.size()] = L'\0';
+		dest[filePath.size() + 1] = L'\0';
+		GlobalUnlock(hGlobal);
+		return hGlobal;
+	}
+
+	std::wstring saveClipboardRelayImage(const int w, const int h, BYTE* data)
+	{
+		// 中转文件固定使用 PNG：它同时适合 Codex、浏览器和聊天窗口；“另存为”仍然
+		// 遵循截图页里的 PNG/JPG/BMP 设置。中转文件不自动删除，便于一次选取多张发送。
+		auto directory = Util::getClipboardRelayDirectory();
+		std::error_code ec;
+		std::filesystem::create_directories(directory, ec);
+		if (ec) return L"";
+		const auto basePath = directory / (std::wstring{ L"clipboard_" } + Util::createFileName(L"png"));
+		auto path = basePath;
+		for (unsigned int index = 1; std::filesystem::exists(path, ec) && !ec; ++index) {
+			path = directory / (basePath.stem().wstring() + L"_" + std::to_wstring(index) + basePath.extension().wstring());
+		}
+		if (ec) return L"";
+		if (!Util::saveToFile(path.wstring(), w, h, data)) {
+			std::filesystem::remove(path, ec);
+			return L"";
+		}
+		return path.wstring();
+	}
+
 	// quirc 交出来的是裸字节流：BYTE 类型的二维码现实中基本都是 UTF-8（微信、支付宝
 	// 生成的都是），Kanji 类型按 ISO 18004 规定是 Shift-JIS。所以先按 UTF-8 严格解，
 	// 解不通再退回对应的本地代码页，避免把中文变成一堆问号
@@ -77,6 +190,11 @@ namespace {
 void Util::saveToClipboard(const int w, const int h, BYTE* data)
 {
 	if (w <= 0 || h <= 0 || !data) return;
+	std::wstring relayPath;
+	if (auto setting = Setting::get(); setting &&
+		setting->getMediaFlag(L"capture", L"clipboardFileRelay", false)) {
+		relayPath = saveClipboardRelayImage(w, h, data);
+	}
 	DWORD rowBytes = (DWORD)w * 4;
 	DWORD imgBytes = rowBytes * (DWORD)h;
 
@@ -165,6 +283,12 @@ void Util::saveToClipboard(const int w, const int h, BYTE* data)
 	}
 	EmptyClipboard();
 	// SetClipboardData 成功后 HGLOBAL 归剪切板所有，不能再 GlobalFree；失败了才要自己释放
+	if (!relayPath.empty()) {
+		auto hDrop = makeFileDropData(relayPath);
+		if (!hDrop || !SetClipboardData(CF_HDROP, hDrop)) {
+			if (hDrop) GlobalFree(hDrop);
+		}
+	}
 	if (!SetClipboardData(CF_DIBV5, hDibV5)) {
 		GlobalFree(hDibV5);
 	}
@@ -189,7 +313,78 @@ bool Util::saveToFile(const std::wstring& path, const int w, const int h, BYTE* 
 	if (FAILED(hr)) return false;
 	hr = stream->InitializeFromFilename(path.c_str(), GENERIC_WRITE);
 	if (FAILED(hr)) return false;
+	const auto ext = imageExtension(path);
+	if (ext == L".jpg") {
+		int quality = 95;
+		if (auto setting = Setting::get()) {
+			quality = (int)std::lround(setting->getMediaNum(L"capture", L"jpegQuality", 95.f));
+		}
+		return encodeBgrImage(stream.Get(), GUID_ContainerFormatJpeg, w, h, data, quality);
+	}
+	if (ext == L".bmp") {
+		return encodeBgrImage(stream.Get(), GUID_ContainerFormatBmp, w, h, data, 100);
+	}
+	// 未知扩展名按 PNG 处理，兼容 OCR 插件及旧调用方直接传入无扩展名路径的行为。
 	return encodePng(stream.Get(), w, h, data);
+}
+
+std::wstring Util::getCaptureImageExtension()
+{
+	std::wstring format = L"png";
+	if (auto setting = Setting::get()) format = setting->getMediaText(L"capture", L"imageFormat", L"png");
+	std::transform(format.begin(), format.end(), format.begin(), [](wchar_t ch) { return (wchar_t)towlower(ch); });
+	if (format == L"jpeg") format = L"jpg";
+	if (format != L"jpg" && format != L"bmp") format = L"png";
+	return format;
+}
+
+std::filesystem::path Util::getClipboardRelayDirectory()
+{
+	auto setting = Setting::get();
+	if (!setting) return {};
+	const auto configured = setting->getMediaText(L"capture", L"clipboardDirectory", L"");
+	if (configured.empty()) {
+		return setting->getDataPath().append(L"clipboard");
+	}
+	std::filesystem::path path{ configured };
+	if (path.is_relative()) path = Setting::get()->getDataPath() / path;
+	return path;
+}
+
+std::wstring Util::chooseFolder(HWND owner, const std::wstring& currentPath)
+{
+	std::wstring result;
+	ComPtr<IFileOpenDialog> dialog;
+	auto hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
+		IID_PPV_ARGS(dialog.GetAddressOf()));
+	if (FAILED(hr)) return result;
+	DWORD options{ 0 };
+	if (FAILED(dialog->GetOptions(&options))) return result;
+	if (FAILED(dialog->SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM))) return result;
+	if (!currentPath.empty()) {
+		ComPtr<IShellItem> currentItem;
+		if (SUCCEEDED(SHCreateItemFromParsingName(currentPath.c_str(), nullptr,
+			IID_PPV_ARGS(currentItem.GetAddressOf()))) && currentItem) {
+			dialog->SetFolder(currentItem.Get());
+		}
+	}
+	if (FAILED(dialog->Show(owner))) return result;
+	ComPtr<IShellItem> item;
+	if (FAILED(dialog->GetResult(item.GetAddressOf())) || !item) return result;
+	PWSTR filePath{ nullptr };
+	if (FAILED(item->GetDisplayName(SIGDN_FILESYSPATH, &filePath)) || !filePath) return result;
+	result = filePath;
+	CoTaskMemFree(filePath);
+	return result;
+}
+
+bool Util::openFolder(HWND owner, const std::filesystem::path& path)
+{
+	std::error_code ec;
+	std::filesystem::create_directories(path, ec);
+	if (ec) return false;
+	return reinterpret_cast<INT_PTR>(ShellExecuteW(owner, L"open", path.wstring().c_str(),
+		nullptr, nullptr, SW_SHOWNORMAL)) > 32;
 }
 
 std::wstring Util::getSaveFilePath(HWND hwnd, const std::wstring& ext)
@@ -262,8 +457,7 @@ void Util::addFileToClipboard(const std::wstring& filePath)
 	if (!OpenClipboard(nullptr)) return;
 	EmptyClipboard();
 	// DROPFILES 之后紧跟双 \0 结尾的路径列表，这里只放一条
-	auto totalSize = sizeof(DROPFILES) + (filePath.length() + 2) * sizeof(wchar_t);
-	auto hGlobal = GlobalAlloc(GMEM_MOVEABLE, totalSize);
+	auto hGlobal = makeFileDropData(filePath);
 	if (!hGlobal) {
 		CloseClipboard();
 		return;

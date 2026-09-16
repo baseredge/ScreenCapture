@@ -1,11 +1,15 @@
 ﻿#include "pch.h"
 #include <filesystem>
 #include "../App.h"
+#include "../Setting.h"
 #include "../Lang.h"
 #include "WinSetting.h"
 #include "WinSettingCommon.h"
 #include "WinSettingShortcut.h"
 #include "WinSettingAbout.h"
+#include "WinSettingCapture.h"
+#include "WinSettingVideo.h"
+#include "WinSettingGif.h"
 
 std::unique_ptr<WinSetting> winSetting;
 
@@ -80,7 +84,7 @@ void WinSetting::onCreated()
 }
 void WinSetting::initMenuItems(Ling::Node* menuBox)
 {
-	for (size_t i = 0; i < 3; i++)
+	for (size_t i = 0; i < 6; i++)
 	{
 		auto menuItem = menuBox->makeChild<Ling::Button>();
 		menuItem->setFontSize(14.f);
@@ -96,9 +100,18 @@ void WinSetting::initMenuItems(Ling::Node* menuBox)
 			menuItem->setHoverColor(0x000000ff);
 			menuItem->setHoverBg(0xE1E1E3ff);
 			if (i == 1) {
-				menuItem->setText(Lang::get(L"setting.shortcut"));
+				menuItem->setText(Setting::get()->getLang() == L"en-US" ? L"Screenshot" : L"截图");
 			}
 			else if (i == 2) {
+				menuItem->setText(L"MP4");
+			}
+			else if (i == 3) {
+				menuItem->setText(L"GIF");
+			}
+			else if (i == 4) {
+				menuItem->setText(Lang::get(L"setting.shortcut"));
+			}
+			else if (i == 5) {
 				menuItem->setText(Lang::get(L"setting.about"));
 			}
 		}
@@ -131,9 +144,18 @@ void WinSetting::onMenuItemClick(Ling::Button* menuItem)
 		content = body->makeChild<WinSettingCommon>();
 	}
 	else if (menuIndex == 1) {
-		content = body->makeChild<WinSettingShortcut>();
+		content = body->makeChild<WinSettingCapture>();
 	}
 	else if (menuIndex == 2) {
+		content = body->makeChild<WinSettingVideo>();
+	}
+	else if (menuIndex == 3) {
+		content = body->makeChild<WinSettingGif>();
+	}
+	else if (menuIndex == 4) {
+		content = body->makeChild<WinSettingShortcut>();
+	}
+	else if (menuIndex == 5) {
 		content = body->makeChild<WinSettingAbout>();
 	}
 	content->setFlexGrow(1.0);
@@ -153,7 +175,10 @@ LRESULT WinSetting::onHitTest(const POINT pos)
 	if (pt.x > 0 && pt.y > 0 && pt.x < w - 32 * dpi && pt.y < 40 * dpi) {
 		return HTCAPTION;
 	}
-	if (pt.x > 0 && pt.y > 40*4*dpi && pt.x < 120 * dpi && pt.y < h) {
+	// 左侧菜单下方的空白区域也可以拖动窗口。菜单数量增加后，不能再把旧的
+	// 固定高度当作分界线，否则最后一个菜单会被误判成 HTCAPTION，按钮收不到点击。
+	const float menuBottom = (40.f + 40.f * static_cast<float>(menus.size())) * dpi;
+	if (pt.x > 0 && pt.y > menuBottom && pt.x < 120 * dpi && pt.y < h) {
 		return HTCAPTION;
 	}
 	return HTCLIENT;

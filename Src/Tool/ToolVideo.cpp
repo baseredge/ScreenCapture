@@ -2,11 +2,15 @@
 #include "../Win/WinCap.h"
 #include "../Util.h"
 #include "../Lang.h"
+#include "../Setting.h"
+#include "../MediaConfig.h"
 #include "../Tip.h"
 #include "ToolVideo.h"
 
 ToolVideo::ToolVideo(WinCap* win) : Ling::WinBase(), win(win)
 {
+	selectSpeaker = Setting::get()->getMediaFlag(L"mp4", L"systemAudio", true);
+	selectMic = Setting::get()->getMediaFlag(L"mp4", L"microphone", false);
 	// 跟着宿主窗口的缩放走：WinBase 构造里取的是系统 dpi，宿主可能在另一块缩放比例不同的屏上
 	dpi = win->dpi;
 	// 位置由 CapVideo::makeTool() 在 createNativeWindow 之前设好，这里只算尺寸
@@ -235,8 +239,7 @@ void ToolVideo::startRecord()
 void ToolVideo::updateTimerText()
 {
 	if (!timerLabel) return;
-	// GIF 上限 6 分钟，MP4 上限 120 分钟
-	const int maxMinutes = (selectIndex == 1) ? 6 : 120;
+	const int maxMinutes = (selectIndex == 1) ? MediaConfig::gifMaxMinutes() : MediaConfig::mp4MaxMinutes();
 	timerLabel->setText(std::format(L"{:02d}:{:02d} / {:02d}:00", totalSeconds / 60, totalSeconds % 60, maxMinutes));
 }
 
@@ -245,7 +248,7 @@ void ToolVideo::onTimerCB(UINT id)
 	if (id != tickTimerId) return;
 	totalSeconds += 1;
 	updateTimerText();
-	const int maxSeconds = ((selectIndex == 1) ? 6 : 120) * 60;
+	const int maxSeconds = ((selectIndex == 1) ? MediaConfig::gifMaxMinutes() : MediaConfig::mp4MaxMinutes()) * 60;
 	if (totalSeconds >= maxSeconds) {
 		// 到上限就自动存盘收工
 		saveFile();

@@ -22,7 +22,7 @@ public:
 	void layoutTools();
 	// 把底图与所有未撤销的 shape 合成后写入剪切板，成功即关窗
 	void copyToClipboard();
-	// 弹另存为对话框，把合成结果存成 PNG，成功即关窗；用户取消或失败则保持窗口
+	// 弹另存为对话框，按截图设置保存合成结果，成功即关窗；用户取消或失败则保持窗口
 	void saveToFile();
 	// 所有 ShapeText 共用的文本输入框，第一次用到时才建。
 	// 共用而不是一个 shape 一个：TextBox 构造时会往窗口的十来个事件上挂回调，

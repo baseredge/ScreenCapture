@@ -6,6 +6,7 @@
 #include "../Tool/ToolVideo.h"
 #include "../App.h"
 #include "../Setting.h"
+#include "../MediaConfig.h"
 #include "../Lang.h"
 // VideoMp4.hpp / VideoGif.hpp 里用的是裸 ComPtr，本项目的 pch 没有这条 using，
 // 在包含它们之前补上，头文件本身保持原样。
@@ -133,10 +134,17 @@ void CapVideo::startMp4(bool useSpeaker, bool useMic)
     mp4Param->rx = { rcLeft, rcTop, rcLeft + rcW, rcTop + rcH };
     mp4Param->f = videoTempPath.append(L"temp.mp4").wstring();
     mp4Param->EndMS = 0;
-    mp4Param->fps = 30;
-    mp4Param->vbrm = 2;
-    mp4Param->vbrq = 50;
+    mp4Param->fps = MediaConfig::mp4Fps();
+    const int bitrateKbps = MediaConfig::mp4BitrateKbps();
+    // 0 保留原来的质量模式；选择明确码率时切到 CBR，避免界面上的码率只改了
+    // 文件头平均值、实际编码仍完全由质量模式决定。
+    mp4Param->BR = bitrateKbps > 0 ? bitrateKbps : mp4Param->BR;
+    mp4Param->vbrm = bitrateKbps > 0 ? 3 : 2;
+    mp4Param->vbrq = bitrateKbps > 0 ? 0 : MediaConfig::mp4Quality();
     mp4Param->Qu = 50;
+    mp4Param->SR = MediaConfig::mp4SampleRate();
+    mp4Param->ABR = MediaConfig::mp4AudioBitrateKbps();
+    mp4Param->Cursor = Setting::get()->getMediaFlag(L"mp4", L"cursor", true);
     mp4Param->MustEnd = false;
     VideoMp4::setAudio(mp4Param.get(), useSpeaker, useMic);
     // 文案在这里先取出来按值带进线程：langObj 是 WinRT 对象，不往采集线程里带
@@ -200,6 +208,11 @@ void CapVideo::startGif()
     gifParam->w = (int)(cutMask->maskRect.right - cutMask->maskRect.left);
     gifParam->h = (int)(cutMask->maskRect.bottom - cutMask->maskRect.top);
     gifParam->path = videoTempPath.append(L"temp.gif").wstring();
+    gifParam->fps = static_cast<UINT>(MediaConfig::gifFps());
+    gifParam->quality = static_cast<uint8_t>(MediaConfig::gifQuality());
+    gifParam->fast = Setting::get()->getMediaFlag(L"gif", L"fast", true);
+    gifParam->cursor = Setting::get()->getMediaFlag(L"gif", L"cursor", true);
+    gifParam->repeat = static_cast<int16_t>(MediaConfig::gifRepeat());
     captureThread = std::jthread([this](std::stop_token st) {
         VideoGif::createGif(gifParam.get());
     });

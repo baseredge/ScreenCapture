@@ -30,6 +30,19 @@ public:
 	void setToolFlag(const std::wstring& tool, const std::wstring& key, bool val);
 	float getToolNum(const std::wstring& tool, const std::wstring& key, float def);
 	void setToolNum(const std::wstring& tool, const std::wstring& key, float val);
+	// 媒体设置分别放在 config.json 的 capture / mp4 / gif 节点。
+	// 读取时兼容早期版本写入的 video 节点，避免升级后丢掉用户已经选好的 FPS/音频。
+	float getMediaNum(const std::wstring& media, const std::wstring& key, float def);
+	void setMediaNum(const std::wstring& media, const std::wstring& key, float val);
+	bool getMediaFlag(const std::wstring& media, const std::wstring& key, bool def);
+	void setMediaFlag(const std::wstring& media, const std::wstring& key, bool val);
+	std::wstring getMediaText(const std::wstring& media, const std::wstring& key, const std::wstring& def);
+	void setMediaText(const std::wstring& media, const std::wstring& key, const std::wstring& val);
+	// 旧接口暂时保留给已有外部调用方；新代码应使用上面的分媒体接口。
+	float getVideoNum(const std::wstring& key, float def);
+	void setVideoNum(const std::wstring& key, float val);
+	bool getVideoFlag(const std::wstring& key, bool def);
+	void setVideoFlag(const std::wstring& key, bool val);
 	// 上次检查更新是哪一天（std::chrono::days 的计数，即 1970-01-01 以来的天数），
 	// 从来没查过返回 0。一天最多查一次服务端，靠它记账 —— 每次空闲都去请求纯属浪费人家的流量
 	long long getUpdateCheckDay();
@@ -39,6 +52,7 @@ private:
 	// toolPin.<tool> 那个 JsonObject。缺哪一层就现建一层挂上去 ——
 	// SetNamedValue 得有个落脚的对象，而这两层在旧配置文件里都不存在
 	JsonObject getToolObj(const std::wstring& tool);
+	JsonObject getMediaObj(const std::wstring& media);
 	std::filesystem::path initDataPath();
 	// 决定配置文件用哪一份：exe 同目录有 config.json 就用它（绿色版，配置跟着程序走），
 	// 否则用 %appdata%\ScreenCapture\config.json。二者只认一个，读哪儿就写哪儿。

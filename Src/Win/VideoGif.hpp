@@ -19,7 +19,11 @@ namespace VideoGif {
         int h;
         int x;
         int y;
-        UINT fps{16};
+        UINT fps{15};
+        uint8_t quality{80};
+        bool fast{true};
+        bool cursor{true};
+        int16_t repeat{0}; // 0 = 无限循环，-1 = 播放一次
     };
 
     inline void drawCursor(HDC hMemDC, GifParam* param) {
@@ -45,9 +49,9 @@ namespace VideoGif {
         GifskiSettings setting{
             .width{(uint32_t)param->w},
             .height{(uint32_t)param->h},
-            .quality{80},
-            .fast{true},
-            .repeat{0}//循环
+            .quality{param->quality},
+            .fast{param->fast},
+            .repeat{param->repeat}
         };
         auto path = Ling::Util::convertToStr(param->path);
         gifski* encoder = gifski_new(&setting);
@@ -69,7 +73,7 @@ namespace VideoGif {
         while (!param->isFinish) {
             auto tickStart = GetTickCount64();
             BitBlt(hMemDC, 0, 0, param->w, param->h, hScreenDC, param->x, param->y, SRCCOPY);
-            drawCursor(hMemDC, param);
+            if (param->cursor) drawCursor(hMemDC, param);
             GetDIBits(hMemDC, hBitmap, 0, param->h, (void*)bgra_buffer.data(), &bmi, DIB_RGB_COLORS);
             // BGRA → RGB，逐行转换到紧密排列的缓冲区
             for (int row = 0; row < param->h; row++) {
@@ -136,7 +140,7 @@ namespace VideoGif {
         while (!param->isFinish) {
             auto tickStart = GetTickCount64();
             BitBlt(hMemDC, 0, 0, param->w, param->h, hScreenDC, param->x, param->y, SRCCOPY);
-            drawCursor(hMemDC, param);
+            if (param->cursor) drawCursor(hMemDC, param);
             GetDIBits(hMemDC, hBitmap, 0, param->h, (void*)bgra_buffer.data(), &bmi, DIB_RGB_COLORS);
             // BGRA → RGB，逐行转换到紧密排列的缓冲区
             for (int row = 0; row < param->h; row++) {

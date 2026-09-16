@@ -135,6 +135,15 @@
     <ClCompile Include="Win\CapVideo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Win\WinSettingVideo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Win\WinSettingCapture.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Win\WinSettingGif.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Res\Resource.rc">
@@ -253,6 +262,18 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Win\CapVideo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Win\WinSettingVideo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Win\WinSettingCapture.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Win\WinSettingGif.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MediaConfig.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Win\VideoGif.hpp">

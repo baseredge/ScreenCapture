@@ -9,9 +9,9 @@
 namespace {
     std::unique_ptr<Setting> setting;
     constexpr int capShortcutMsgId{ 100 };
-    // 配置文件的默认内容。空文件、坏 JSON、缺键都拿它兜底，所以这里列出的每一项
-    // 都是代码里会直接按名字取的（见 getLang / getAutoStart / initShortcutKeys）
-    constexpr std::wstring_view defaultConfig{ LR"""({"common":{"autoStart":false,"language":"zh-CN"},"shortcutKey":{"cap":"Ctrl+Alt+A"}})""" };
+    // 配置文件的默认内容。媒体配置按实际输出格式分开，避免 MP4 的码率等参数
+    // 意外套到 GIF 上。早期的 video 节点仍由 getMedia* 兼容读取。
+    constexpr std::wstring_view defaultConfig{ LR"""({"common":{"autoStart":false,"language":"zh-CN"},"shortcutKey":{"cap":"Ctrl+Alt+A"},"capture":{"imageFormat":"png","jpegQuality":95,"clipboardFileRelay":false,"clipboardDirectory":""},"mp4":{"fps":30,"quality":50,"bitrateKbps":0,"audioBitrateKbps":192,"sampleRate":44100,"systemAudio":true,"microphone":false,"cursor":true,"maxMinutes":120},"gif":{"fps":15,"quality":80,"fast":true,"cursor":true,"repeat":0,"maxMinutes":6}})""" };
 }
 
 
@@ -221,6 +221,131 @@ float Setting::getToolNum(const std::wstring& tool, const std::wstring& key, flo
 void Setting::setToolNum(const std::wstring& tool, const std::wstring& key, float val)
 {
     getToolObj(tool).SetNamedValue(key, JsonValue::CreateNumberValue(val));
+    save();
+}
+
+JsonObject Setting::getMediaObj(const std::wstring& media)
+{
+    auto obj = configObj.GetNamedObject(media, nullptr);
+    if (!obj) {
+        obj = JsonObject();
+        configObj.SetNamedValue(media, obj);
+    }
+    return obj;
+}
+
+float Setting::getMediaNum(const std::wstring& media, const std::wstring& key, float def)
+{
+    auto obj = configObj.GetNamedObject(media, nullptr);
+    if (obj && obj.HasKey(key)) {
+        try {
+            return static_cast<float>(obj.GetNamedNumber(key, def));
+        }
+        catch (...) {
+            // 配置文件可能被用户手工改成了错误类型，按缺失项处理。
+        }
+    }
+    // 早期设置页把 MP4 配置写在 video 下。只对 MP4 做回退，避免一项旧配置
+    // 同名时污染 GIF 或截图配置。
+    if (media == L"mp4") {
+        auto legacy = configObj.GetNamedObject(L"video", nullptr);
+        if (legacy && legacy.HasKey(key)) {
+            try {
+                return static_cast<float>(legacy.GetNamedNumber(key, def));
+            }
+            catch (...) {
+            }
+        }
+    }
+    return def;
+}
+
+void Setting::setMediaNum(const std::wstring& media, const std::wstring& key, float val)
+{
+    getMediaObj(media).SetNamedValue(key, JsonValue::CreateNumberValue(val));
+    save();
+}
+
+bool Setting::getMediaFlag(const std::wstring& media, const std::wstring& key, bool def)
+{
+    auto obj = configObj.GetNamedObject(media, nullptr);
+    if (obj && obj.HasKey(key)) {
+        try {
+            return obj.GetNamedBoolean(key, def);
+        }
+        catch (...) {
+        }
+    }
+    if (media == L"mp4") {
+        auto legacy = configObj.GetNamedObject(L"video", nullptr);
+        if (legacy && legacy.HasKey(key)) {
+            try {
+                return legacy.GetNamedBoolean(key, def);
+            }
+            catch (...) {
+            }
+        }
+    }
+    return def;
+}
+
+void Setting::setMediaFlag(const std::wstring& media, const std::wstring& key, bool val)
+{
+    getMediaObj(media).SetNamedValue(key, JsonValue::CreateBooleanValue(val));
+    save();
+}
+
+std::wstring Setting::getMediaText(const std::wstring& media, const std::wstring& key, const std::wstring& def)
+{
+    auto obj = configObj.GetNamedObject(media, nullptr);
+    if (!obj || !obj.HasKey(key)) return def;
+    try {
+        return std::wstring{ obj.GetNamedString(key, def) };
+    }
+    catch (...) {
+        return def;
+    }
+}
+
+void Setting::setMediaText(const std::wstring& media, const std::wstring& key, const std::wstring& val)
+{
+    getMediaObj(media).SetNamedValue(key, JsonValue::CreateStringValue(val));
+    save();
+}
+
+float Setting::getVideoNum(const std::wstring& key, float def)
+{
+    auto video = configObj.GetNamedObject(L"video", nullptr);
+    if (!video) return def;
+    return static_cast<float>(video.GetNamedNumber(key, def));
+}
+
+void Setting::setVideoNum(const std::wstring& key, float val)
+{
+    auto video = configObj.GetNamedObject(L"video", nullptr);
+    if (!video) {
+        video = JsonObject();
+        configObj.SetNamedValue(L"video", video);
+    }
+    video.SetNamedValue(key, JsonValue::CreateNumberValue(val));
+    save();
+}
+
+bool Setting::getVideoFlag(const std::wstring& key, bool def)
+{
+    auto video = configObj.GetNamedObject(L"video", nullptr);
+    if (!video) return def;
+    return video.GetNamedBoolean(key, def);
+}
+
+void Setting::setVideoFlag(const std::wstring& key, bool val)
+{
+    auto video = configObj.GetNamedObject(L"video", nullptr);
+    if (!video) {
+        video = JsonObject();
+        configObj.SetNamedValue(L"video", video);
+    }
+    video.SetNamedValue(key, JsonValue::CreateBooleanValue(val));
     save();
 }
 

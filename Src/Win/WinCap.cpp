@@ -744,7 +744,7 @@ void WinCap::saveToFile()
             0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     };
     setToolTopmost(false);
-    auto path = Util::getSaveFilePath(hwnd);
+    auto path = Util::getSaveFilePath(hwnd, Util::getCaptureImageExtension());
     // 对话框关掉后本窗口会被激活（会盖住降下来的工具条），所以只要还留在截图里，
     // 工具条就得重新压回最上层
     if (path.empty()) { //用户取消了

@@ -549,7 +549,7 @@ void WinPin::copyToClipboard()
 void WinPin::saveToFile()
 {
 	auto foregroundBeforeDialog = GetForegroundWindow();
-	auto path = Util::getSaveFilePath(hwnd);
+	auto path = Util::getSaveFilePath(hwnd, Util::getCaptureImageExtension());
 	if (path.empty()) {   // 用户取消
 		restoreWindowState(foregroundBeforeDialog);
 		return;
