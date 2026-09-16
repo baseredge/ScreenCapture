@@ -56,25 +56,8 @@
 
 Download the latest version of the text recognition tool [ImageReader.exe](https://github.com/xland/ImageReader/releases) (about 25MB), place this file in the same directory as ScreenCapture.exe, or in the `%appdata%\ScreenCapture\plugin` directory, then restart the application to use it.
 
-## Sponsor
+## Project and license
 
-<table>
-  <tr>
-    <td align="center">
-      <img alt="Alipay Sponsor" src="./alipay.jpg" width="160" height="160">
-      <p>Alipay Sponsor</p>
-    </td>
-    <td align="center">
-      <img alt="WeChat Sponsor" src="./wechat.png" width="160" height="160">
-      <p>WeChat Sponsor</p>
-    </td>
-    <td align="center">
-      <img alt="Author WeChat" src="./author.jpg" width="160" height="160">
-      <p>Author WeChat</p>
-    </td>
-    <td align="center">
-      <img alt="Official Account QR Code" src="./gongzhonghao.jpg" width="160" height="160">
-      <p>WeChat Blog: Desktop Software</p>
-    </td>
-  </tr>
-</table>
+This repository is a private maintenance fork of [xland/ScreenCapture](https://github.com/xland/ScreenCapture), maintained by `baseredge`.
+
+The original attribution and [MIT License](../LICENSE) are retained. This fork does not include payment, donation, or sponsorship QR codes.

@@ -2,100 +2,98 @@
 
 ![banner](./Doc/banner.png)
 
-**ScreenCapture** 一个小巧但功能强大的Windows截图工具。
+# ScreenCapture
 
-## 特性
+一个轻量、快速的 Windows 截图与录屏工具。本仓库是基于 [xland/ScreenCapture](https://github.com/xland/ScreenCapture) 的个人维护分支。
 
-- 截图、绘图标注、滚动截图（截长图）、录屏（GIF/MP4）、文字识别（OCR）、二维码识别。
-- 取景框（拾色器），支持快捷键复制 RGB 颜色（`Ctrl+R`）、 HEX 颜色（`Ctrl+H`）与 CMYK 颜色（`Ctrl+K`）。
-- 绘制椭圆、正圆（按住`Shift`）、矩形、正方形（按住`Shift`）、箭头、标号等。
-- 绘制曲线、直线（按住`Shift`）、马赛克、橡皮擦、文本。
-- 可以随时修改、删除已绘制的元素（鼠标移到元素上）。
-- 撤销（`Ctrl+Z`）、重做（`Ctrl+Y`）、保存为文件（`Ctrl+S`）、保存到剪贴板（`Ctrl+C`或双击）。
-- 运行速度快、内存占用低。
-- 体积小、仅一个可执行文件，无需安装，不依赖任何动态链接库（文字识别除外）。
-- 支持多种命令行参数直接启动指定的功能。
-- 支持用完即走（进程不驻留在系统中）。
-- 多语言支持。
+## 项目关系
 
-## 下载
+- 原项目：[xland/ScreenCapture](https://github.com/xland/ScreenCapture)
+- 当前维护者：`baseredge`
+- 当前仓库：[baseredge/ScreenCapture](https://github.com/baseredge/ScreenCapture)（Private）
+- 原项目的作者信息、版权声明和许可证保持不变；本分支只在此基础上增加和维护功能。
 
-[Release](https://github.com/xland/ScreenCapture/releases/) （1MB）
+## 功能
 
-## 常用功能与问题
+- 截图、绘图标注、滚动截图（截长图）。
+- 屏幕录制：MP4 和 GIF。
+- 截图格式：PNG、JPG、BMP；JPG 质量可配置。
+- 截图剪贴板文件中转：截图先保存到指定目录，再复制到剪贴板；每张截图独立保留，便于在支持磁盘图片的应用中多选发送。
+- MP4 设置：帧率、质量/码率、音频码率、采样率、系统声音、麦克风、鼠标指针和自动停止时间。
+- GIF 设置：帧率、质量、快速编码、鼠标指针、循环方式和自动停止时间。
+- 文字识别（OCR）和二维码识别插件。
+- 取景框、颜色拾取、箭头、矩形、椭圆、文本、马赛克、橡皮擦等标注工具。
+- 支持多语言和命令行启动。
 
-- 按住 `Ctrl键` 框选截图区域后，直接进入图像标记窗口（钉图窗口）
-- 按住 `Ctrl键` 滚动鼠标滚轮可以放大、缩小图像标记窗口（钉图窗口）
-- 长截图拼接不符合预期时，尝试调整截图区域往往能解决问题
-- 如手动下载新版本，则必须退出老版本再启动新版本
+## 使用
 
-## 支持的操作系统
+直接运行：
 
-- Windows 10 1803 or Later
+```text
+x64\Release\ScreenCapture.exe
+```
 
-## 编译
+设置窗口可分别配置截图、MP4 和 GIF，不同媒体的参数互不污染。
 
-- main分支依赖 [Ling](https://github.com/xland/Ling) GUI 框架.
-- 使用 Visual Studio 2026（With C++ Desktop Dev Kit）即可编译项目。
-- [2.4.25（基于D2D）](https://github.com/xland/ScreenCapture/tree/2.4.25)或 [2.3.3（基于Qt）](https://github.com/xland/ScreenCapture/tree/2.3.3_qt)是以前的稳定分支。
+## 配置与便携模式
+
+默认配置目录：`%APPDATA%\ScreenCapture`。
+
+- 配置文件：`%APPDATA%\ScreenCapture\config.json`
+- 剪贴板中转目录：可在“设置 → 截图”中选择、打开或恢复默认目录。
+- 语言文件：`%APPDATA%\ScreenCapture\Lang`
+- OCR 插件：`%APPDATA%\ScreenCapture\plugin\ImageReader.exe`
+
+如果在 `ScreenCapture.exe` 同目录创建 `config.json`，程序会优先使用程序目录中的配置，适合便携使用。`Lang` 和 `ImageReader.exe` 也可以放在程序目录下。
 
 ## 命令行
 
-```
-// 截图完成后即退出进程。
-> ScreenCapture.exe --auto-quit=true
+```text
+:: 截图完成后退出
+ScreenCapture.exe --auto-quit=true
 
-// 框选完成后不显示工具条，直接进入指定功能：
-// pin 钉图/图像标记
-> ScreenCapture.exe --enter=pin
-// long 长截图
-> ScreenCapture.exe --enter=long
-// video 屏幕录制
-> ScreenCapture.exe --enter=video
-// ocr 文字识别
-> ScreenCapture.exe --enter=ocr
-// qr 二维码识别
-> ScreenCapture.exe --enter=qr
-// tray 仅注册托盘图标，不执行任何操作
-> ScreenCapture.exe --enter=tray
+:: 框选完成后直接进入指定功能
+ScreenCapture.exe --enter=pin
+ScreenCapture.exe --enter=long
+ScreenCapture.exe --enter=video
+ScreenCapture.exe --enter=ocr
+ScreenCapture.exe --enter=qr
 
-// 两个参数可以联合使用，比如：不注册托盘图标，截完长图后进程直接退出
-> ScreenCapture.exe --enter=long --auto-quit=true
+:: 仅注册托盘图标
+ScreenCapture.exe --enter=tray
 ```
 
-## 文字识别插件
+## 编译
 
-下载最新版本的文字识别工具 [ImageReader.exe](https://github.com/xland/ImageReader/releases) (约25MB) 并把此文件放置到 `%appdata%\ScreenCapture\plugin`目录下，然后重启应用即可使用（或 `ScreenCapture.exe` 同目录下亦可）
+要求：
 
-## 便携能力
+- Windows 10 1803 或更高版本。
+- Visual Studio 2026，安装“使用 C++ 的桌面开发”。
+- [Ling](https://github.com/xland/Ling) GUI 框架。
+- GIF 编码依赖 [gifski](https://github.com/ImageOptim/gifski)。
 
-默认情况下 ScreenCapture 会从 `%appdata%\ScreenCapture\Lang` 目录下读取配置信息、语言文件及插件。
+当前工程按以下目录关系查找外部源码和库：
 
-但用户可以在 `ScreenCapture.exe` 同目录下创建一个 `config.json` 的空文件，重启应用，`ScreenCapture` 即会在此文件中设置配置信息。
+```text
+D:\aiDo\CPP\
+├─ ScreenCapture\
+├─ Ling\
+└─ gifski\
+```
 
-`ScreenCapture.exe` 同目录下创建一个 `Lang` 子目录，然后把语言文件放置到此目录下，`ScreenCapture` 即会读取此目录下的语言文件。
+先确保 `gifski\target\release\gifski.lib` 存在，然后使用 Visual Studio 或 MSBuild 编译：
 
-文字识别插件 `ImageReader.exe` 也可以放置在 `ScreenCapture.exe` 同目录下
+```text
+msbuild ScreenCapture.slnx /t:Build /p:Configuration=Release /p:Platform=x64
+```
 
-## 赞助
+输出文件：`x64\Release\ScreenCapture.exe`。
 
-<table>
-  <tr>
-    <td align="center">
-      <img alt="支付宝赞助" src="./Doc/alipay.jpg" width="160" height="160">
-      <p>支付宝赞助</p>
-    </td>
-    <td align="center">
-      <img alt="微信赞助" src="./Doc/wechat.png" width="160" height="160">
-      <p>微信赞助</p>
-    </td>
-    <td align="center">
-      <img alt="作者微信" src="./Doc/author.jpg" width="160" height="160">
-      <p>作者微信</p>
-    </td>
-    <td align="center">
-      <img alt="公众号二维码" src="./Doc/gongzhonghao.jpg" width="160" height="160">
-      <p>公众号：桌面软件</p>
-    </td>
-  </tr>
-</table>
+## 许可证与第三方组件
+
+- 原项目代码继续使用仓库中的 [MIT License](./LICENSE)，不得删除原版权和许可文本。
+- [Ling](https://github.com/xland/Ling) 使用 MIT 许可证。
+- GIF 功能链接 [gifski](https://github.com/ImageOptim/gifski)，其许可证为 AGPL-3.0-or-later；该依赖的许可证和源码义务不能被本项目的 MIT 声明覆盖。
+- `Src/quirc` 保留其自身的版权和许可声明。
+
+本分支不包含支付、捐赠或赞助二维码，也不设置付费入口；保留原项目归属信息是为了尊重来源和方便追溯。

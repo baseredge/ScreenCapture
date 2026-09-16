@@ -56,25 +56,8 @@
 
 Скачайте последнюю версию инструмента распознавания текста [ImageReader.exe](https://github.com/xland/ImageReader/releases) (около 25 МБ) и поместите этот файл в тот же каталог, где находится ScreenCapture.exe, либо в каталог `%appdata%\ScreenCapture\plugin`, затем перезапустите приложение.
 
-## Поддержать проект
+## Проект и лицензия
 
-<table>
-  <tr>
-    <td align="center">
-      <img alt="Alipay" src="./alipay.jpg" width="160" height="160">
-      <p>Alipay</p>
-    </td>
-    <td align="center">
-      <img alt="WeChat" src="./wechat.png" width="160" height="160">
-      <p>WeChat</p>
-    </td>
-    <td align="center">
-      <img alt="WeChat автора" src="./author.jpg" width="160" height="160">
-      <p>WeChat автора</p>
-    </td>
-    <td align="center">
-      <img alt="QR-код официального аккаунта" src="./gongzhonghao.jpg" width="160" height="160">
-      <p>Блог WeChat: Desktop Software</p>
-    </td>
-  </tr>
-</table>
+Этот репозиторий является частной веткой сопровождения [xland/ScreenCapture](https://github.com/xland/ScreenCapture), сопровождаемой `baseredge`.
+
+Исходная атрибуция и [лицензия MIT](../LICENSE) сохранены. В этой ветке нет платёжных, пожертвовательных или спонсорских QR-кодов.

@@ -56,25 +56,8 @@
 
 Unduh versi terbaru alat pengenalan teks [ImageReader.exe](https://github.com/xland/ImageReader/releases) (sekitar 25MB), lalu letakkan file tersebut di direktori yang sama dengan ScreenCapture.exe, atau di direktori `%appdata%\ScreenCapture\plugin`, kemudian jalankan ulang aplikasi untuk menggunakannya.
 
-## Sponsor
+## Proyek dan lisensi
 
-<table>
-  <tr>
-    <td align="center">
-      <img alt="Sponsor Alipay" src="./alipay.jpg" width="160" height="160">
-      <p>Sponsor Alipay</p>
-    </td>
-    <td align="center">
-      <img alt="Sponsor WeChat" src="./wechat.png" width="160" height="160">
-      <p>Sponsor WeChat</p>
-    </td>
-    <td align="center">
-      <img alt="WeChat Penulis" src="./author.jpg" width="160" height="160">
-      <p>WeChat Penulis</p>
-    </td>
-    <td align="center">
-      <img alt="QR Code Akun Resmi" src="./gongzhonghao.jpg" width="160" height="160">
-      <p>Blog WeChat: Desktop Software</p>
-    </td>
-  </tr>
-</table>
+Repositori ini adalah fork privat untuk pemeliharaan [xland/ScreenCapture](https://github.com/xland/ScreenCapture), dikelola oleh `baseredge`.
+
+Atribusi asli dan [lisensi MIT](../LICENSE) tetap dipertahankan. Fork ini tidak menyertakan QR code pembayaran, donasi, atau sponsor.
