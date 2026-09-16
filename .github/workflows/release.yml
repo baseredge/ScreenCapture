@@ -50,11 +50,11 @@ jobs:
 
       - name: Build Ling Yoga
         shell: pwsh
-        run: '& $env:MSBUILD ..\Ling\yoga\yoga.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /m'
+        run: '& $env:MSBUILD ..\Ling\yoga\yoga.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /p:SolutionDir=..\Ling\ /m'
 
       - name: Build Ling
         shell: pwsh
-        run: '& $env:MSBUILD ..\Ling\Ling.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /m'
+        run: '& $env:MSBUILD ..\Ling\Ling.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /p:SolutionDir=..\Ling\ /m'
 
       - name: Build ScreenCapture
         shell: pwsh
