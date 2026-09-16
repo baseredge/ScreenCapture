@@ -37,13 +37,24 @@ jobs:
         shell: pwsh
         run: cargo build --release --manifest-path ..\gifski\Cargo.toml
 
+      - name: Locate MSBuild
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $vsPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if (-not $vsPath) { throw 'Visual Studio with MSBuild was not found.' }
+          $msbuild = Join-Path $vsPath 'MSBuild\Current\Bin\MSBuild.exe'
+          if (-not (Test-Path -LiteralPath $msbuild)) { throw "MSBuild not found: $msbuild" }
+          "MSBUILD=$msbuild" >> $env:GITHUB_ENV
+          & $msbuild -version
+
       - name: Build Ling
         shell: pwsh
-        run: msbuild ..\Ling\Ling.slnx /t:Build /p:Configuration=Release /p:Platform=x64 /m
+        run: '& $env:MSBUILD ..\Ling\Ling.slnx /t:Build /p:Configuration=Release /p:Platform=x64 /m'
 
       - name: Build ScreenCapture
         shell: pwsh
-        run: msbuild .\ScreenCapture.slnx /t:Build /p:Configuration=Release /p:Platform=x64 /m
+        run: '& $env:MSBUILD .\ScreenCapture.slnx /t:Build /p:Configuration=Release /p:Platform=x64 /m'
 
       - name: Package Windows x64 build
         shell: pwsh
