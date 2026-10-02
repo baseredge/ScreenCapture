@@ -95,22 +95,27 @@ jobs:
           $repo = $env:GITHUB_REPOSITORY
           $tag = 'latest'
           $shortSha = $env:GITHUB_SHA.Substring(0, 7)
+          $buildTime = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm UTC')
           $notes = Join-Path $env:RUNNER_TEMP 'release-notes.md'
 
           @"
           Automated Windows x64 build from main.
 
           Commit: $env:GITHUB_SHA
+          Updated: $buildTime
           Dependency revisions are pinned in the workflow.
           This rolling release is updated on every push to main.
           "@ | Set-Content -LiteralPath $notes -Encoding utf8
 
           gh release view $tag --repo $repo *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release edit $tag --repo $repo --target $env:GITHUB_SHA --title "Latest build ($shortSha)" --notes-file $notes
+            # Release metadata updates do not move an existing tag.
+            gh api "repos/$repo/git/refs/tags/$tag" --method PATCH -f "sha=$env:GITHUB_SHA" -F force=true
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to update rolling source tag.' }
+            gh release edit $tag --repo $repo --target $env:GITHUB_SHA --title "Latest build ($buildTime, $shortSha)" --notes-file $notes
             if ($LASTEXITCODE -ne 0) { throw 'Failed to update the latest release.' }
             gh release upload $tag $env:RELEASE_ASSET $env:RELEASE_CHECKSUM --repo $repo --clobber
           }
           else {
-            gh release create $tag $env:RELEASE_ASSET $env:RELEASE_CHECKSUM --repo $repo --target $env:GITHUB_SHA --title "Latest build ($shortSha)" --notes-file $notes --latest=false
+            gh release create $tag $env:RELEASE_ASSET $env:RELEASE_CHECKSUM --repo $repo --target $env:GITHUB_SHA --title "Latest build ($buildTime, $shortSha)" --notes-file $notes --latest=false
           }

@@ -68,6 +68,8 @@ try {
     if ($release.body -notmatch [regex]::Escape("Commit: $sha") -or $release.targetCommitish -ne $sha) {
         throw 'Latest release does not match this commit; another push may have replaced it.'
     }
+    $sourceSha = Invoke-Checked gh @('api', "repos/$repo/git/ref/tags/latest", '--jq', '.object.sha')
+    if ($sourceSha -ne $sha) { throw 'Release source tag does not match this commit.' }
     foreach ($name in @('ScreenCapture-windows-x64.zip', 'ScreenCapture-windows-x64.sha256')) {
         if (-not @($release.assets | Where-Object { $_.name -eq $name -and $_.size -gt 0 }).Count) {
             throw "Release asset missing or empty: $name"
