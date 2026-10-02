@@ -93,6 +93,14 @@ msbuild ScreenCapture.slnx /t:Build /p:Configuration=Release /p:Platform=x64
 
 每次向 `main` 推送后，GitHub Actions 会在 Windows Runner 上自动构建，并更新私有仓库中的 `latest` Release。Release 中包含 Windows x64 ZIP 包和 SHA-256 校验文件。
 
+一键提交、推送并确认发布（需要 Git、已登录的 GitHub CLI，以及指向本分支仓库的 `private` 远程）：
+
+```powershell
+./publish.ps1 -Message "说明本次修改"
+```
+
+默认提交所有未忽略的改动；可通过 `-Paths 文件1,文件2` 指定暂存文件。没有新改动时，执行 `./publish.ps1` 可推送已有提交并确认发布。脚本仅向 `baseredge/ScreenCapture` 的 `main` 推送，等待该提交的云端构建成功，核对 Release 提交及两个附件后才报告完成；失败或超时会报错。本机不重复打包或下载构建产物。
+
 ## 许可证与第三方组件
 
 - 原项目代码继续使用仓库中的 [MIT License](./LICENSE)，不得删除原版权和许可文本。
