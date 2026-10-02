@@ -6,6 +6,7 @@
 #include "../MediaConfig.h"
 #include "../Tip.h"
 #include "ToolVideo.h"
+#include "ToolbarStyle.h"
 
 ToolVideo::ToolVideo(WinCap* win) : Ling::WinBase(), win(win)
 {
@@ -49,7 +50,7 @@ void ToolVideo::onCreated()
 	body->setBorder(1.f, 0xA8A8A8ff);
 	body->setAlignItems(Ling::Align::Center);
 	body->setFlexDirection(Ling::FlexDirection::Row);
-	showSetting();
+	if (directFormat < 0) showSetting();
 	show();
 }
 
@@ -96,8 +97,9 @@ void ToolVideo::applyToggleStyle(Ling::Button* btn, bool selected)
 	if (selected) {
 		btn->setBg(0xe6f4ffff);
 		btn->setHoverBg(0xe6f4ffff);
-		btn->setColor(0x1677ffff);
-		btn->setHoverColor(0x1677ffff);
+		const auto color = ToolbarStyle::iconColor(btn == btnMic ? L"mic" : btn == btnSpeaker ? L"speaker" : L"save");
+        btn->setColor(color);
+        btn->setHoverColor(color);
 	}
 	else {
 		btn->setBg(0);
@@ -156,9 +158,11 @@ void ToolVideo::showSetting()
 	makeSpliter();
 
 	auto btnStart = makeIconBtn(L"\ue660");
+    ToolbarStyle::applyIconColors(btnStart, L"video");
 	btnStart->onClick.add([this](Ling::Button*) { startRecord(); });
 	tip->bind(btnStart, Lang::get(L"video.startRecord"));
 	auto btnClose = makeIconBtn(L"\ue62d");
+    ToolbarStyle::applyIconColors(btnClose, L"close");
 	btnClose->onClick.add([this](Ling::Button*) { this->win->close(); });
 	tip->bind(btnClose, Lang::get(L"video.exit"));
 
@@ -187,12 +191,15 @@ void ToolVideo::showRecording()
 
 	// 丢弃 / 存文件 / 存剪切板，三条路都会停掉录制并结束整个流程
 	auto btnDiscard = makeIconBtn(L"\ue62d");
+    ToolbarStyle::applyIconColors(btnDiscard, L"close");
 	btnDiscard->onClick.add([this](Ling::Button*) { finishRecord(false); });
 	tip->bind(btnDiscard, Lang::get(L"video.stopExit"));
 	auto btnSave = makeIconBtn(L"\ue608");
+    ToolbarStyle::applyIconColors(btnSave, L"save");
 	btnSave->onClick.add([this](Ling::Button*) { saveFile(); });
 	tip->bind(btnSave, Lang::get(L"video.stopFile"));
 	auto btnClipboard = makeIconBtn(L"\ue6ad");
+    ToolbarStyle::applyIconColors(btnClipboard, L"clipboard");
 	btnClipboard->onClick.add([this](Ling::Button*) { finishRecord(true); });
 	tip->bind(btnClipboard, Lang::get(L"video.stopClipboard"));
 }
@@ -222,11 +229,19 @@ void ToolVideo::applyFormatStyle()
 	applyToggleStyle(btnMic, selectMic);
 }
 
+void ToolVideo::startDirect()
+{
+    selectIndex = directFormat == 1 ? 1 : 0;
+    if (selectIndex == 1) { selectSpeaker = false; selectMic = false; }
+    startRecord();
+}
+
 void ToolVideo::startRecord()
 {
 	isRecording = true;
 	totalSeconds = 0;
 	showRecording();
+    win->layoutTool(this);
 	setTimer(1000, tickTimerId);
 	if (selectIndex == 0) {
 		win->startMp4(selectSpeaker, selectMic);

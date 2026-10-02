@@ -7,3 +7,4 @@ Res.aps
 /ScreenCapture/x64/
 /ScreenCapture/ScreenCapture/x64/
 **/x64/**
+/.build-deps/

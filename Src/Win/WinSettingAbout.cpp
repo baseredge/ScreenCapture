@@ -5,22 +5,9 @@
 #include "../Util.h"
 #include "../Setting.h"
 
-namespace {
-    std::wstring getAboutLabel(const std::wstring& key)
-    {
-        if (key == L"fork") {
-            return Setting::get()->getLang() == L"en-US" ? L"Fork:" : L"本分支：";
-        }
-        if (key == L"maintainer") {
-            return Setting::get()->getLang() == L"en-US" ? L"Maintainer:" : L"维护者：";
-        }
-        return Lang::get(L"about." + key);
-    }
-}
-
 WinSettingAbout::WinSettingAbout(Ling::WinBase* parent):Ling::Node(parent)
 {
-    std::vector<std::wstring> keys = { L"version",L"project",L"author",L"fork",L"maintainer" };
+    std::vector<std::wstring> keys = { L"version",L"originalProject",L"originalAuthor",L"originalWechat",L"fork",L"maintainer" };
     for (auto& key : keys)
     {
         auto box = makeChild<Ling::Node>();
@@ -29,10 +16,10 @@ WinSettingAbout::WinSettingAbout(Ling::WinBase* parent):Ling::Node(parent)
         box->setAlignItems(Ling::Align::Center);
 
         auto label = box->makeChild<Ling::Label>();
-        label->setText(getAboutLabel(key));
+        label->setText(Lang::get(L"about." + key));
         label->setHeightPercent(100.f);
         label->setJustifyContent(Ling::Justify::Center);
-        label->setFlexGrow(1.f);
+        label->setWidth(120.f);
 
         auto btn = box->makeChild<Ling::Button>();
         btn->setId(key);
@@ -41,7 +28,7 @@ WinSettingAbout::WinSettingAbout(Ling::WinBase* parent):Ling::Node(parent)
             auto verStr = std::format(L"{}.{}.{}", ver[0], ver[1], ver[2]);
             btn->setText(verStr);
         }
-        else if (key == L"project") {
+        else if (key == L"originalProject") {
             btn->setText(L"github.com/xland/ScreenCapture");
             btn->setColor(0x597ef7ff);
             btn->setHoverColor(0x597ef7ff);
@@ -50,13 +37,21 @@ WinSettingAbout::WinSettingAbout(Ling::WinBase* parent):Ling::Node(parent)
                 ShellExecute(win->hwnd, L"open", downloadUrl.data(), nullptr, nullptr, SW_SHOWNORMAL);
                 });
         }
-        else if (key == L"author") {
-            btn->setText(Lang::get(L"about.wechat"));
+        else if (key == L"originalAuthor") {
+            btn->setText(L"xland");
+            btn->setColor(0x597ef7ff);
+            btn->setHoverColor(0x597ef7ff);
+            btn->onClick.add([this](Ling::Button*) {
+                ShellExecute(win->hwnd, L"open", L"https://github.com/xland", nullptr, nullptr, SW_SHOWNORMAL);
+            });
+        }
+        else if (key == L"originalWechat") {
+            btn->setText(L"liulun_007");
             btn->setColor(0x597ef7ff);
             btn->setHoverColor(0x597ef7ff);
             btn->onClick.add([this](Ling::Button* btn) {
                 Ling::Util::setTextToClipboard(L"liulun_007");
-                MessageBox(win->hwnd, Lang::get(L"about.copySuccess").data(), Lang::get(L"about.sysTip").data(), MB_OK | MB_ICONINFORMATION);
+                MessageBox(win->hwnd, Lang::get(L"about.originalWechatCopied").data(), Lang::get(L"about.sysTip").data(), MB_OK | MB_ICONINFORMATION);
                 });
         }
         else if (key == L"fork") {
@@ -73,7 +68,7 @@ WinSettingAbout::WinSettingAbout(Ling::WinBase* parent):Ling::Node(parent)
         }
         btn->setAlignItems(Ling::Align::FlexEnd);
         btn->setHeight(28.f);
-        btn->setWidth(120.f);
+        btn->setFlexGrow(1.f);
         btn->setBg(0);
         btn->setHoverBg(0);
         btns.push_back(btn);
@@ -82,6 +77,12 @@ WinSettingAbout::WinSettingAbout(Ling::WinBase* parent):Ling::Node(parent)
         border->setHeight(1.f);
         border->setBg(0xE0E0E0FF);
     }
+    auto note = makeChild<Ling::Label>();
+    note->setText(Lang::get(L"about.attributionNote"));
+    note->setFontSize(12.f);
+    note->setColor(0x66758Cff);
+    note->setHeight(48.f);
+    note->setWidthPercent(100.f);
 }
 
 WinSettingAbout::~WinSettingAbout()

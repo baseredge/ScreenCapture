@@ -4,6 +4,7 @@
 #include "../Lang.h"
 #include "../Tip.h"
 #include "ToolMain.h"
+#include "ToolbarStyle.h"
 #include "ToolSub.h"
 
 ToolMain::ToolMain(WinPin* win) : Ling::WinBase(), win(win)
@@ -96,6 +97,7 @@ void ToolMain::onCreated()
 			btn->setHoverBg(0xF2F2F2ff);
 			btn->setFontFamily(L"icon");
 			btn->setFontSize(13.f);
+            ToolbarStyle::applyIconColors(btn, id);
 			btn->onClick.add([this](Ling::Button* btn) {onClick(btn);});
 			tip->bind(btn, Lang::get(std::format(L"tool.{}", id)));
 			btns.push_back(btn);

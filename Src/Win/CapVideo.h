@@ -17,7 +17,7 @@ public:
 	CapVideo(WinCap* win);
 	~CapVideo();
 	// ToolCap 原地换成 ToolVideo
-	void makeTool();
+	void makeTool(int format = -1);
 	// ToolVideo 的摆放规则（就是 WinCap 那套通用规则）。建窗口时走一遍，
 	// 工具条或宿主的 DPI 变了之后回头再走一遍
 	void layoutTool();

@@ -3,6 +3,7 @@
 #include "../Lang.h"
 #include "../Tip.h"
 #include "ToolLong.h"
+#include "ToolbarStyle.h"
 
 ToolLong::ToolLong(WinCap* win) : Ling::WinBase(), win(win)
 {
@@ -51,6 +52,7 @@ void ToolLong::onCreated()
 		btn->setHoverBg(0xF2F2F2ff);
 		btn->setFontFamily(L"icon");
 		btn->setFontSize(13.f);
+        ToolbarStyle::applyIconColors(btn, btnIds[i]);
 		btn->onClick.add([this](Ling::Button* btn) {onClick(btn);});
 		tip->bind(btn, Lang::get(std::format(L"tool.{}", btnIds[i])));
 	}

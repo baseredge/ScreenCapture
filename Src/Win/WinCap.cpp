@@ -611,14 +611,14 @@ void WinCap::startLong()
     capLong = std::make_unique<CapLong>(this);
 }
 
-void WinCap::startVideo()
+void WinCap::startVideo(int format)
 {
     if (stage != CapStage::Adjust || !cutMask->hasRect()) return;
     stage = CapStage::Video;
     enterLiveStage();
     capVideo = std::make_unique<CapVideo>(this);
     // ToolCap 原地换成 ToolVideo
-    capVideo->makeTool();
+    capVideo->makeTool(format);
 }
 
 void WinCap::startMp4(bool useSpeaker, bool useMic)

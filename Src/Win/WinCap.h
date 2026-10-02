@@ -30,7 +30,8 @@ public:
 	// ToolCap
 	void startPin();
 	void startLong();
-	void startVideo();
+	// format: -1 opens settings (command-line compatibility), 0 records MP4, 1 records GIF.
+	void startVideo(int format = -1);
 	void startOcr();
 	void startQrcode();
 	void saveToFile();

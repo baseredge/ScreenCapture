@@ -14,6 +14,8 @@ public:
 	// Ctrl+S / Ctrl+C 从 WinCap 转进来，等价于录制中那两个按钮。
 	// 没在录制（还停在设置形态）时没东西可存，返回 false
 	bool onSaveKey(bool toClipboard);
+    int directFormat{ -1 };
+    void startDirect();
 private:
 	void onCreated() override;
 	void onMinMaxInfo(MINMAXINFO* mmi) override;

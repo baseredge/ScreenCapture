@@ -3,6 +3,7 @@
 #include "../Lang.h"
 #include "../Tip.h"
 #include "ToolCap.h"
+#include "ToolbarStyle.h"
 
 ToolCap::ToolCap(WinCap* win) : Ling::WinBase(), win(win)
 {
@@ -61,6 +62,15 @@ void ToolCap::onCreated()
 		btn->setHoverBg(0xF2F2F2ff);
 		btn->setFontFamily(L"icon");
 		btn->setFontSize(13.f);
+        const auto& id = btnIds[i];
+
+        if (id == L"video" || id == L"gif") {
+            const bool video = id == L"video";
+            if (!video) btn->setFontSize(15.f);
+            btn->setBg(video ? 0xFFF1F0ff : 0xE8F7F5ff);
+            btn->setHoverBg(video ? 0xFFE1DEff : 0xCCEEEAff);
+        }
+        ToolbarStyle::applyIconColors(btn, id);
 		btn->onClick.add([this](Ling::Button* btn) { onClick(btn); });
 		if (!btnTips[i].empty()) {
 			tip->bind(btn, Lang::get(btnTips[i]));
@@ -80,7 +90,10 @@ void ToolCap::onClick(Ling::Button* btn)
 		win->startLong();
 	}
 	else if (btn->id == L"video") {
-		win->startVideo();
+		win->startVideo(0);
+	}
+    else if (btn->id == L"gif") {
+        win->startVideo(1);
 	}
 	else if (btn->id == L"ocr") {
 		win->startOcr();
