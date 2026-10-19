@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <include/Ling.h>
 #include "Setting.h"
 #include "Util.h"
@@ -11,7 +11,7 @@ namespace {
     constexpr int capShortcutMsgId{ 100 };
     // 配置文件的默认内容。媒体配置按实际输出格式分开，避免 MP4 的码率等参数
     // 意外套到 GIF 上。早期的 video 节点仍由 getMedia* 兼容读取。
-    constexpr std::wstring_view defaultConfig{ LR"""({"common":{"autoStart":false,"language":"zh-CN"},"shortcutKey":{"cap":"Ctrl+Alt+A"},"capture":{"imageFormat":"png","jpegQuality":95,"clipboardFileRelay":false,"clipboardDirectory":""},"mp4":{"fps":30,"quality":50,"bitrateKbps":0,"audioBitrateKbps":192,"sampleRate":44100,"systemAudio":true,"microphone":false,"cursor":true,"maxMinutes":120},"gif":{"fps":15,"quality":80,"fast":true,"cursor":true,"repeat":0,"maxMinutes":6}})""" };
+    constexpr std::wstring_view defaultConfig{ LR"""({"common":{"autoStart":false,"language":"zh-CN"},"shortcutKey":{"cap":"Ctrl+Alt+A"},"capture":{"imageFormat":"png","jpegQuality":95,"clipboardFileRelay":false,"clipboardDirectory":""},"mp4":{"fps":30,"quality":50,"bitrateKbps":0,"audioBitrateKbps":192,"sampleRate":44100,"systemAudio":true,"microphone":false,"cursor":true,"maxMinutes":120},"gif":{"fps":15,"quality":80,"fast":true,"cursor":true,"repeat":0,"maxMinutes":6},"video":{"relayDirectory":""}})""" };
 }
 
 

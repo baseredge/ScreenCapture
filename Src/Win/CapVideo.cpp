@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <include/Ling.h>
 #include "CapVideo.h"
 #include <mutex>
@@ -9,6 +9,7 @@
 #include "../Setting.h"
 #include "../MediaConfig.h"
 #include "../Lang.h"
+#include "../Util.h"
 // VideoMp4.hpp / VideoGif.hpp 里用的是裸 ComPtr，本项目的 pch 没有这条 using，
 // 在包含它们之前补上，头文件本身保持原样。
 using namespace Microsoft::WRL;
@@ -125,7 +126,6 @@ bool CapVideo::isRecording() const
 void CapVideo::startMp4(bool useSpeaker, bool useMic)
 {
     auto& cutMask = win->cutMask;
-    auto videoTempPath = Setting::get()->getDataPath();
     mp4Param = std::make_unique<VideoMp4::DESKTOPCAPTUREPARAMS>();
     // 编码格式不在这里定，交给下面采集线程里那个"HEVC 不行就退 H.264"的循环
     // 录制区域先夹回桌面范围，再做对齐 —— 只会往里缩，不会越出桌面。
@@ -144,7 +144,7 @@ void CapVideo::startMp4(bool useSpeaker, bool useMic)
     const long rcW = std::max(4l, (rcRight - rcLeft) & ~3l);
     const long rcH = std::max(2l, (rcBottom - rcTop) & ~1l);
     mp4Param->rx = { rcLeft, rcTop, rcLeft + rcW, rcTop + rcH };
-    mp4Param->f = videoTempPath.append(L"temp.mp4").wstring();
+    mp4Param->f = Util::createVideoRelayPath(L"mp4");
     mp4Param->EndMS = 0;
     mp4Param->fps = MediaConfig::mp4Fps();
     const int bitrateKbps = MediaConfig::mp4BitrateKbps();
@@ -235,13 +235,12 @@ void CapVideo::startMp4(bool useSpeaker, bool useMic)
 void CapVideo::startGif()
 {
     auto& cutMask = win->cutMask;
-    auto videoTempPath = Setting::get()->getDataPath();
     gifParam = std::make_unique<VideoGif::GifParam>();
     gifParam->x = (int)(win->x + cutMask->maskRect.left);
     gifParam->y = (int)(win->y + cutMask->maskRect.top);
     gifParam->w = (int)(cutMask->maskRect.right - cutMask->maskRect.left);
     gifParam->h = (int)(cutMask->maskRect.bottom - cutMask->maskRect.top);
-    gifParam->path = videoTempPath.append(L"temp.gif").wstring();
+    gifParam->path = Util::createVideoRelayPath(L"gif");
     gifParam->fps = static_cast<UINT>(MediaConfig::gifFps());
     gifParam->quality = static_cast<uint8_t>(MediaConfig::gifQuality());
     gifParam->fast = Setting::get()->getMediaFlag(L"gif", L"fast", true);

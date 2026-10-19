@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <filesystem>
 #include "../App.h"
 #include "../Setting.h"
@@ -23,7 +23,7 @@ WinSetting::WinSetting() :Ling::WinBase()
 		Ling::App::get()->dq.TryEnqueue([]() { winSetting.reset(); });
 	});
 	setTitle(Lang::get(L"setting.title"));
-	setSize(680, 560);
+	setSize(680, 620);
 	setCenter();
 	createNativeWindow();
 }

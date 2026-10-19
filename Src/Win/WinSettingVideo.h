@@ -9,6 +9,7 @@ public:
 
 private:
     void initCodecCtrls();
+    void initRelayDirectoryCtrls();
     void initEncoderInfo();
     void initFpsCtrls();
     void initBitrateCtrls();
@@ -43,4 +44,5 @@ private:
     bool systemAudio{ true };
     bool microphone{ false };
     bool cursor{ true };
+    Ling::Label* directoryLabel{ nullptr };
 };

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <wincodec.h>
 #include <shobjidl.h>
 #include <format>
@@ -135,13 +135,13 @@ namespace {
 
 	std::wstring saveClipboardRelayImage(const int w, const int h, BYTE* data)
 	{
-		// 中转文件固定使用 PNG：它同时适合 Codex、浏览器和聊天窗口；“另存为”仍然
-		// 遵循截图页里的 PNG/JPG/BMP 设置。中转文件不自动删除，便于一次选取多张发送。
+		// 遵循截图设置里的 PNG/JPG/BMP 格式与质量。中转文件不自动删除，便于一次选取多张发送。
 		auto directory = Util::getClipboardRelayDirectory();
 		std::error_code ec;
 		std::filesystem::create_directories(directory, ec);
 		if (ec) return L"";
-		const auto basePath = directory / (std::wstring{ L"clipboard_" } + Util::createFileName(L"png"));
+		const auto ext = Util::getCaptureImageExtension();
+		const auto basePath = directory / (std::wstring{ L"clipboard_" } + Util::createFileName(ext));
 		auto path = basePath;
 		for (unsigned int index = 1; std::filesystem::exists(path, ec) && !ec; ++index) {
 			path = directory / (basePath.stem().wstring() + L"_" + std::to_wstring(index) + basePath.extension().wstring());
@@ -350,6 +350,40 @@ std::filesystem::path Util::getClipboardRelayDirectory()
 	if (path.is_relative()) path = Setting::get()->getDataPath() / path;
 	return path;
 }
+
+std::filesystem::path Util::getVideoRelayDirectory()
+{
+	auto setting = Setting::get();
+	if (!setting) return {};
+	const auto configured = setting->getMediaText(L"video", L"relayDirectory", L"");
+	if (configured.empty()) {
+		return setting->getDataPath().append(L"video");
+	}
+	std::filesystem::path path{ configured };
+	if (path.is_relative()) path = Setting::get()->getDataPath() / path;
+	return path;
+}
+
+std::wstring Util::createVideoRelayPath(const std::wstring& ext)
+{
+	auto directory = getVideoRelayDirectory();
+	std::error_code ec;
+	std::filesystem::create_directories(directory, ec);
+	if (ec) {
+		auto setting = Setting::get();
+		if (!setting) return L"";
+		directory = setting->getDataPath().append(L"video");
+		std::filesystem::create_directories(directory, ec);
+		if (ec) return L"";
+	}
+	const auto basePath = directory / (std::wstring{ L"record_" } + createFileName(ext));
+	auto path = basePath;
+	for (unsigned int index = 1; std::filesystem::exists(path, ec) && !ec; ++index) {
+		path = directory / (basePath.stem().wstring() + L"_" + std::to_wstring(index) + basePath.extension().wstring());
+	}
+	return path.wstring();
+}
+
 
 std::wstring Util::chooseFolder(HWND owner, const std::wstring& currentPath)
 {

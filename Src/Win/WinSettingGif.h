@@ -14,6 +14,7 @@ private:
     void initCursorCtrls();
     void initLoopCtrls();
     void initDurationCtrls();
+    void initRelayDirectoryCtrls();
     void applyStyle(std::vector<Ling::Button*>& buttons, int selected);
     void applyToggleStyle(Ling::Button* btn, bool selected);
     void setToggleButton(Ling::Button* btn, bool selected);
@@ -31,4 +32,5 @@ private:
     int selectedDuration{ 6 };
     bool fast{ true };
     bool cursor{ true };
+    Ling::Label* directoryLabel{ nullptr };
 };

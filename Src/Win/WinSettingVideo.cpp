@@ -2,6 +2,7 @@
 #include <functional>
 #include "../Setting.h"
 #include "../MediaConfig.h"
+#include "../Util.h"
 #include "WinSettingVideo.h"
 #include "CapVideo.h"
 
@@ -41,10 +42,10 @@ namespace {
         border->setBg(0xE0E0E0FF);
     }
 
-    Ling::Button* makeChoiceButton(Ling::Node* options, int value, const std::wstring& text)
+    Ling::Button* makeChoiceButton(Ling::Node* options, const std::wstring& id, const std::wstring& text)
     {
         auto btn = options->makeChild<Ling::Button>();
-        btn->setId(std::to_wstring(value));
+        btn->setId(id);
         btn->setText(text);
         btn->setSize(52.f, 30.f);
         btn->setMarginRight(6.f);
@@ -52,6 +53,11 @@ namespace {
         btn->setBorderRadius(3.f);
         btn->setFontSize(13.f);
         return btn;
+    }
+
+    Ling::Button* makeChoiceButton(Ling::Node* options, int value, const std::wstring& text)
+    {
+        return makeChoiceButton(options, std::to_wstring(value), text);
     }
 }
 
@@ -69,6 +75,7 @@ WinSettingVideo::WinSettingVideo(Ling::WinBase* parent)
       cursor(Setting::get()->getMediaFlag(L"mp4", L"cursor", true))
 {
     initCodecCtrls();
+    initRelayDirectoryCtrls();
     initFpsCtrls();
     initBitrateCtrls();
     initQualityCtrls();
@@ -100,6 +107,49 @@ void WinSettingVideo::initCodecCtrls()
         codecBtns.push_back(btn);
     }
     applyStyle(codecBtns, selectedCodec);
+    addBorder(this);
+}
+
+void WinSettingVideo::initRelayDirectoryCtrls()
+{
+    auto row = makeRow(this, settingText(L"中转目录", L"Relay directory"));
+    auto options = makeOptions(row);
+    directoryLabel = options->makeChild<Ling::Label>();
+    directoryLabel->setText(Util::getVideoRelayDirectory().wstring());
+    directoryLabel->setHeightPercent(100.f);
+    directoryLabel->setFlexGrow(1.f);
+    directoryLabel->setFontSize(10.f);
+    directoryLabel->setColor(0x666666FF);
+    directoryLabel->setJustifyContent(Ling::Justify::Center);
+    addBorder(this);
+
+    auto actionRow = makeRow(this, settingText(L"目录操作", L"Directory"));
+    auto actionOptions = makeOptions(actionRow);
+    auto chooseBtn = makeChoiceButton(actionOptions, L"choose", settingText(L"选择目录", L"Choose"));
+    chooseBtn->setWidth(82.f);
+    chooseBtn->onClick.add([this](Ling::Button*) {
+        const auto current = Util::getVideoRelayDirectory().wstring();
+        const auto selected = Util::chooseFolder(win->hwnd, current);
+        if (selected.empty()) return;
+        Setting::get()->setMediaText(L"video", L"relayDirectory", selected);
+        directoryLabel->setText(selected);
+    });
+    auto openBtn = makeChoiceButton(actionOptions, L"open", settingText(L"打开目录", L"Open"));
+    openBtn->setWidth(82.f);
+    openBtn->onClick.add([this](Ling::Button*) {
+        const auto path = Util::getVideoRelayDirectory();
+        if (!Util::openFolder(win->hwnd, path)) {
+            const auto message = settingText(L"无法打开中转目录", L"Cannot open relay directory");
+            const auto title = settingText(L"提示", L"Notice");
+            MessageBoxW(win->hwnd, message.c_str(), title.c_str(), MB_OK | MB_ICONWARNING);
+        }
+    });
+    auto resetBtn = makeChoiceButton(actionOptions, L"reset", settingText(L"恢复默认", L"Default"));
+    resetBtn->setWidth(82.f);
+    resetBtn->onClick.add([this](Ling::Button*) {
+        Setting::get()->setMediaText(L"video", L"relayDirectory", L"");
+        directoryLabel->setText(Util::getVideoRelayDirectory().wstring());
+    });
     addBorder(this);
 }
 

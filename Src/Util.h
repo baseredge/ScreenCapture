@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <include/Ling.h>
 #include <fstream>
 #include <array>
@@ -18,6 +18,10 @@ public:
 	static std::wstring getCaptureImageExtension();
 	// 剪贴板磁盘中转目录。配置为空时使用 %appdata%/ScreenCapture/clipboard。
 	static std::filesystem::path getClipboardRelayDirectory();
+	// 录屏独立中转目录。配置为空时使用 %appdata%/ScreenCapture/video，不回退到截图目录。
+	static std::filesystem::path getVideoRelayDirectory();
+	// 为录屏生成独立中转文件路径（带时间戳 record_YYYYMMDD...），确保不重名且不互相覆盖。
+	static std::wstring createVideoRelayPath(const std::wstring& ext);
 	// 选择一个文件夹或在资源管理器中打开中转目录。
 	static std::wstring chooseFolder(HWND owner, const std::wstring& currentPath = L"");
 	static bool openFolder(HWND owner, const std::filesystem::path& path);
