@@ -10,6 +10,12 @@
 // 实际编码又把它改成另一种”的分叉。
 namespace MediaConfig
 {
+    // 0 automatic (HEVC then H.264), 1 H.264, 2 HEVC.
+    inline int mp4Codec()
+    {
+        const auto value = Setting::get()->getMediaText(L"mp4", L"codec", L"auto");
+        return value == L"h264" ? 1 : value == L"h265" ? 2 : 0;
+    }
     inline int choice(const std::initializer_list<int> values, int value, int def)
     {
         for (const int item : values) {

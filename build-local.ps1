@@ -20,7 +20,7 @@ try {
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
     $env:TEMP = $tempDir
     $env:TMP = $tempDir
-    # Separate executable output preserves the existing working release.
+    # LocalRelease is the canonical local release path.
     $output = Join-Path $root "x64\Local$Configuration\"
     $ling = [IO.Path]::GetFullPath((Join-Path $root '..\Ling')) + '\'
     $libs = Join-Path $root ".build-deps\libs\$Configuration\"
@@ -36,6 +36,22 @@ try {
 "@ | Set-Content -LiteralPath $props -Encoding utf8
     & $msbuild (Join-Path $root 'ScreenCapture.slnx') "/p:Configuration=$Configuration" /p:Platform=x64 /p:PlatformToolset=v143 "/p:OutDir=$output" "/p:ForceImportBeforeCppTargets=$props" /m /v:minimal /nologo
     if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE" }
+    if ($Configuration -eq 'Release') {
+        # Remove obsolete executables only after a successful build.
+        $obsolete = @(Join-Path $root 'x64\Release\ScreenCapture.exe')
+        $obsolete += @(Get-ChildItem -LiteralPath (Join-Path $root '.build-deps') -Filter '*ScreenCapture*.exe' -File -Recurse |
+            Where-Object { $_.FullName -match '\\before-[^\\]+\\|\\ScreenCapture\.before-' } |
+            Select-Object -ExpandProperty FullName)
+        foreach ($candidate in $obsolete) {
+            $resolved = [IO.Path]::GetFullPath($candidate)
+            if (-not $resolved.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) {
+                throw "Cleanup path outside project: $resolved"
+            }
+            if (Test-Path -LiteralPath $resolved) {
+                Remove-Item -LiteralPath $resolved -Force
+            }
+        }
+    }
 }
 finally {
     $env:CL = $savedCL

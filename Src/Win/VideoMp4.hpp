@@ -1008,6 +1008,8 @@ struct DESKTOPCAPTUREPARAMS
     bool HasAudio = 1;
     std::vector<std::tuple<std::wstring, std::vector<int>>> AudioFrom;
     GUID VIDEO_ENCODING_FORMAT = MFVideoFormat_H264;
+    bool AllowCodecOverride = true;
+    std::function<void(const GUID&, int, const std::wstring&)> EncoderReady;
     GUID AUDIO_ENCODING_FORMAT = MFAudioFormat_MP3;
     std::wstring f;
     void* cb = 0;
@@ -1516,8 +1518,10 @@ inline int DesktopCapture(DESKTOPCAPTUREPARAMS& dp)
         if (!cap.Prepare(dp.nOutput))
             return -2;
         // 桌面复制退回到 FP16 那条路时（Prepare 里要不到 BGRA8），只有 HEVC 收 10 位输入
-        if (cap.InHDR)
+        if (cap.InHDR) {
+            if (!dp.AllowCodecOverride && dp.VIDEO_ENCODING_FORMAT == MFVideoFormat_H264) return -16;
             dp.VIDEO_ENCODING_FORMAT = MFVideoFormat_HEVC;
+        }
         wi = cap.lOutputDuplDesc.ModeDesc.Width;
         he = cap.lOutputDuplDesc.ModeDesc.Height;
         if (dp.rx.right && dp.rx.bottom)
@@ -1918,6 +1922,34 @@ inline int DesktopCapture(DESKTOPCAPTUREPARAMS& dp)
         if (pSinkWriter)
             hr = pSinkWriter->BeginWriting();
         if (FAILED(hr)) return -13;
+        if (dp.HasVideo && dp.EncoderReady) {
+            int hardware = -1;
+            std::wstring encoderName;
+            CComPtr<IMFSinkWriterEx> writerEx;
+            if (SUCCEEDED(pSinkWriter->QueryInterface(__uuidof(IMFSinkWriterEx), (void**)&writerEx))) {
+                for (DWORD index = 0;; ++index) {
+                    GUID category{};
+                    CComPtr<IMFTransform> transform;
+                    if (FAILED(writerEx->GetTransformForStream(OutVideoStreamIndex, index, &category, &transform))) break;
+                    if (category != MFT_CATEGORY_VIDEO_ENCODER) continue;
+                    CComPtr<IMFAttributes> attributes;
+                    if (SUCCEEDED(transform->GetAttributes(&attributes)) && attributes) {
+                        MF_ATTRIBUTE_TYPE type{};
+                        const HRESULT attrHr = attributes->GetItemType(MFT_ENUM_HARDWARE_URL_Attribute, &type);
+                        if (SUCCEEDED(attrHr)) hardware = 1;
+                        else if (attrHr == MF_E_ATTRIBUTENOTFOUND) hardware = 0;
+                        WCHAR* name = nullptr;
+                        UINT32 length = 0;
+                        if (SUCCEEDED(attributes->GetAllocatedString(MFT_FRIENDLY_NAME_Attribute, &name, &length))) {
+                            encoderName.assign(name, length);
+                            CoTaskMemFree(name);
+                        }
+                    }
+                    break;
+                }
+            }
+            dp.EncoderReady(dp.VIDEO_ENCODING_FORMAT, hardware, encoderName);
+        }
     }
 
     const LONG cbWidth = multi * wi;

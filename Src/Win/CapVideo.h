@@ -14,6 +14,12 @@ class ToolVideo;
 class CapVideo
 {
 public:
+	struct EncoderInfo {
+		std::wstring codec;
+		std::wstring name;
+		int hardware{ -1 }; // -1 unknown, 0 software, 1 hardware
+	};
+	static EncoderInfo lastEncoderInfo();
 	CapVideo(WinCap* win);
 	~CapVideo();
 	// ToolCap 原地换成 ToolVideo

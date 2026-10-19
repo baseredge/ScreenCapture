@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include <include/Ling.h>
 #include "CapVideo.h"
+#include <mutex>
 #include "WinCap.h"
 #include "CutMask.h"
 #include "../Tool/ToolVideo.h"
@@ -15,6 +16,8 @@ using namespace Microsoft::WRL;
 #include "VideoGif.hpp"
 
 namespace {
+    std::mutex encoderInfoMutex;
+    CapVideo::EncoderInfo encoderInfo;
     // MP4 录制失败以前是静默 return，用户那边就是"录完什么都没有"，连缓存文件都不生成。
     // 失败原因基本都在对方机器上（混合显卡笔记本把进程放在独显上跑，桌面复制就不成立），
     // 实测让用户在系统图形设置里给本程序选"节能"（把进程放回核显）能解决，
@@ -72,6 +75,12 @@ namespace {
         t = (t + 1) & ~1l;
         return { l, t, l + std::max(4l, (r - l) & ~3l), t + std::max(2l, (b - t) & ~1l) };
     }
+}
+
+CapVideo::EncoderInfo CapVideo::lastEncoderInfo()
+{
+    std::lock_guard lock(encoderInfoMutex);
+    return encoderInfo;
 }
 
 CapVideo::CapVideo(WinCap* win) : win(win)
@@ -153,7 +162,24 @@ void CapVideo::startMp4(bool useSpeaker, bool useMic)
     // 文案在这里先取出来按值带进线程：langObj 是 WinRT 对象，不往采集线程里带
     auto errText = Lang::get(L"video.recordFailed");
     auto errTitle = Lang::get(L"about.sysTip");
-    captureThread = std::jthread([this, errText, errTitle](std::stop_token st) {
+    const int codecMode = MediaConfig::mp4Codec();
+    mp4Param->AllowCodecOverride = codecMode == 0;
+    {
+        std::lock_guard lock(encoderInfoMutex);
+        encoderInfo = {};
+    }
+    mp4Param->EncoderReady = [](const GUID& codec, int hardware, const std::wstring& name) {
+        std::lock_guard lock(encoderInfoMutex);
+        encoderInfo = { codec == MFVideoFormat_H264 ? L"H.264" : L"H.265 / HEVC", name, hardware };
+    };
+    const bool english = Setting::get()->getLang() == L"en-US";
+    const std::wstring codecError = english
+        ? L"The selected codec is unavailable. Choose Auto or another codec in MP4 settings."
+        : L"选定的编码器不可用，请在 MP4 设置中切换为自动或其他编码。";
+    const std::wstring hdrError = english
+        ? L"This screen requires 10-bit capture. Choose Auto or H.265 in MP4 settings."
+        : L"当前屏幕需要 10 位采集，请在 MP4 设置中选择自动或 H.265。";
+    captureThread = std::jthread([this, errText, errTitle, codecMode, codecError, hdrError](std::stop_token st) {
         HRESULT hr = MFStartup(MF_VERSION);
         if (FAILED(hr)) {
             showRecordError(errText, errTitle);
@@ -175,7 +201,10 @@ void CapVideo::startMp4(bool useSpeaker, bool useMic)
         // 有的只带解码，有的靠显卡的硬件 MFT 而显卡没有。缺了的时候 AddStream 照样成功
         //（那一步只是记下输出类型），要到 SetInputMediaType 解析编码器时才失败(-10)。
         // 退回 H.264：它从 Win7 起就带软件编码器，没有装不上的道理，代价是同画质下文件更大
-        for (auto codec : { MFVideoFormat_HEVC, MFVideoFormat_H264 }) {
+        const std::vector<GUID> codecs = codecMode == 1 ? std::vector<GUID>{ MFVideoFormat_H264 }
+            : codecMode == 2 ? std::vector<GUID>{ MFVideoFormat_HEVC }
+            : std::vector<GUID>{ MFVideoFormat_HEVC, MFVideoFormat_H264 };
+        for (auto codec : codecs) {
             mp4Param->VIDEO_ENCODING_FORMAT = codec;
             if (targets.empty()) {
                 mp4Param->rx = deskRx;
@@ -193,7 +222,9 @@ void CapVideo::startMp4(bool useSpeaker, bool useMic)
             // 只有这两个码是"这台机器认不了这个编码器"，换编码器才有意义
             if (code != -5 && code != -10) break;
         }
-        if (code != 0) showRecordError(errText, errTitle);
+        if (code == -16) showRecordError(hdrError, errTitle);
+        else if (codecMode != 0 && (code == -5 || code == -10)) showRecordError(codecError, errTitle);
+        else if (code != 0) showRecordError(errText, errTitle);
         CoUninitialize();
         MFShutdown();
     });

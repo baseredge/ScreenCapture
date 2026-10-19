@@ -8,6 +8,8 @@ public:
     ~WinSettingVideo();
 
 private:
+    void initCodecCtrls();
+    void initEncoderInfo();
     void initFpsCtrls();
     void initBitrateCtrls();
     void initQualityCtrls();
@@ -21,6 +23,8 @@ private:
     void setToggleButton(Ling::Button* btn, bool selected);
 
 private:
+    std::vector<Ling::Button*> codecBtns;
+    int selectedCodec{ 0 };
     std::vector<Ling::Button*> fpsBtns;
     std::vector<Ling::Button*> bitrateBtns;
     std::vector<Ling::Button*> qualityBtns;

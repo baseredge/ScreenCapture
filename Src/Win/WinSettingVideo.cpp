@@ -3,6 +3,7 @@
 #include "../Setting.h"
 #include "../MediaConfig.h"
 #include "WinSettingVideo.h"
+#include "CapVideo.h"
 
 namespace {
     std::wstring settingText(const wchar_t* zh, const wchar_t* en)
@@ -13,7 +14,7 @@ namespace {
     Ling::Node* makeRow(Ling::Node* owner, const std::wstring& text)
     {
         auto row = owner->makeChild<Ling::Node>();
-        row->setHeight(44.f);
+        row->setHeight(38.f);
         row->setFlexDirection(Ling::FlexDirection::Row);
         row->setAlignItems(Ling::Align::Center);
         auto label = row->makeChild<Ling::Label>();
@@ -56,6 +57,7 @@ namespace {
 
 WinSettingVideo::WinSettingVideo(Ling::WinBase* parent)
     : Ling::Node(parent),
+      selectedCodec(MediaConfig::mp4Codec()),
       selectedFps(MediaConfig::mp4Fps()),
       selectedBitrate(MediaConfig::mp4BitrateKbps()),
       selectedQuality(MediaConfig::mp4Quality()),
@@ -66,6 +68,7 @@ WinSettingVideo::WinSettingVideo(Ling::WinBase* parent)
       microphone(Setting::get()->getMediaFlag(L"mp4", L"microphone", false)),
       cursor(Setting::get()->getMediaFlag(L"mp4", L"cursor", true))
 {
+    initCodecCtrls();
     initFpsCtrls();
     initBitrateCtrls();
     initQualityCtrls();
@@ -74,10 +77,59 @@ WinSettingVideo::WinSettingVideo(Ling::WinBase* parent)
     initAudioCtrls();
     initCursorCtrl();
     initDurationCtrls();
+    initEncoderInfo();
 }
 
 WinSettingVideo::~WinSettingVideo()
 {
+}
+
+void WinSettingVideo::initCodecCtrls()
+{
+    auto options = makeOptions(makeRow(this, settingText(L"视频编码", L"Video codec")));
+    const std::vector<std::wstring> labels{ settingText(L"自动", L"Auto"), L"H.264", L"H.265" };
+    const std::vector<std::wstring> values{ L"auto", L"h264", L"h265" };
+    for (int index = 0; index < 3; ++index) {
+        auto btn = makeChoiceButton(options, index, labels[index]);
+        btn->setWidth(65.f);
+        btn->onClick.add([this, index, value = values[index]](Ling::Button*) {
+            selectedCodec = index;
+            Setting::get()->setMediaText(L"mp4", L"codec", value);
+            applyStyle(codecBtns, selectedCodec);
+        });
+        codecBtns.push_back(btn);
+    }
+    applyStyle(codecBtns, selectedCodec);
+    addBorder(this);
+}
+
+void WinSettingVideo::initEncoderInfo()
+{
+    auto row = makeRow(this, settingText(L"最近实际编码", L"Last encoder"));
+    row->setHeight(72.f);
+    auto details = makeOptions(row);
+    details->setFlexDirection(Ling::FlexDirection::Column);
+    const auto info = CapVideo::lastEncoderInfo();
+    auto addLine = [details](const std::wstring& text) {
+        auto label = details->makeChild<Ling::Label>();
+        label->setText(text);
+        label->setHeight(22.f);
+        label->setWidthPercent(100.f);
+        label->setFontSize(12.f);
+        label->setColor(0x526478ff);
+    };
+    if (info.codec.empty()) {
+        addLine(settingText(L"录制后显示实际编码和加速方式", L"Shown after recording starts"));
+        addLine(settingText(L"自动优先 H.265，不可用时回退 H.264", L"Auto: H.265 first, then H.264"));
+    }
+    else {
+        const auto mode = info.hardware == 1 ? settingText(L"硬件加速", L"Hardware")
+            : info.hardware == 0 ? settingText(L"软件编码", L"Software")
+            : settingText(L"加速方式未知", L"Acceleration unknown");
+        addLine(info.codec + L" · " + mode);
+        addLine(info.name.empty() ? settingText(L"系统未提供编码器名称", L"Encoder name not provided") : info.name);
+    }
+    addLine(settingText(L"本次运行的最近记录；重新打开此页可刷新", L"This session; reopen this page to refresh"));
 }
 
 void WinSettingVideo::initFpsCtrls()
