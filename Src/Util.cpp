@@ -338,16 +338,83 @@ std::wstring Util::getCaptureImageExtension()
 	return format;
 }
 
+std::filesystem::path Util::getDefaultBaseDirectory()
+{
+	static std::filesystem::path cachedBase;
+	if (!cachedBase.empty()) {
+		std::error_code ec;
+		if (std::filesystem::exists(cachedBase, ec)) return cachedBase;
+	}
+
+	// 1. 获取系统盘符（通常为 C:）
+	wchar_t sysDriveBuf[MAX_PATH]{};
+	GetEnvironmentVariableW(L"SystemDrive", sysDriveBuf, MAX_PATH);
+	std::wstring sysDrive = sysDriveBuf[0] != L'\0' ? sysDriveBuf : L"C:";
+	std::transform(sysDrive.begin(), sysDrive.end(), sysDrive.begin(), ::towupper);
+
+	// 2. 遍历除系统盘外的驱动器，优先在本地固定磁盘 (DRIVE_FIXED) 中找可用空间最大且可写的磁盘
+	DWORD driveMask = GetLogicalDrives();
+	std::wstring bestDrive;
+	ULARGE_INTEGER maxFreeSpace{ 0 };
+
+	auto scanDrives = [&](UINT targetType) {
+		for (wchar_t letter = L'A'; letter <= L'Z'; ++letter) {
+			if (!(driveMask & (1 << (letter - L'A')))) continue;
+			// 忽略软盘 A/B 及系统盘（绝不默认使用系统盘）
+			if (letter == L'A' || letter == L'B') continue;
+			std::wstring rootPath = std::wstring{ letter } + L":\\";
+			if (_wcsnicmp(rootPath.c_str(), sysDrive.c_str(), 2) == 0) continue;
+
+			if (GetDriveTypeW(rootPath.c_str()) != targetType) continue;
+
+			ULARGE_INTEGER freeBytes{}, totalBytes{}, totalFreeBytes{};
+			if (GetDiskFreeSpaceExW(rootPath.c_str(), &freeBytes, &totalBytes, &totalFreeBytes)) {
+				// 至少有 200MB 空间可用，选剩余空间最大的盘
+				if (freeBytes.QuadPart >= 200ULL * 1024 * 1024 && freeBytes.QuadPart > maxFreeSpace.QuadPart) {
+					std::error_code ec;
+					auto candidate = std::filesystem::path{ rootPath } / L"ScreenCapture";
+					std::filesystem::create_directories(candidate, ec);
+					if (!ec) {
+						maxFreeSpace = freeBytes;
+						bestDrive = rootPath;
+					}
+				}
+			}
+		}
+	};
+
+	// 第一轮：优先在固定硬盘/SSD (DRIVE_FIXED) 中寻找
+	scanDrives(DRIVE_FIXED);
+
+	// 第二轮：若没有可用固定硬盘（如纯移动便携环境），尝试可移动磁盘 (DRIVE_REMOVABLE)
+	if (bestDrive.empty()) {
+		scanDrives(DRIVE_REMOVABLE);
+	}
+
+	if (!bestDrive.empty()) {
+		cachedBase = std::filesystem::path{ bestDrive } / L"ScreenCapture";
+		return cachedBase;
+	}
+
+	// 3. 若电脑仅有单分区 C 盘或所有非系统盘均不可写，才安全退回 AppData 目录
+	auto setting = Setting::get();
+	if (setting) {
+		cachedBase = setting->getDataPath();
+		return cachedBase;
+	}
+	return {};
+}
+
 std::filesystem::path Util::getClipboardRelayDirectory()
 {
 	auto setting = Setting::get();
 	if (!setting) return {};
 	const auto configured = setting->getMediaText(L"capture", L"clipboardDirectory", L"");
 	if (configured.empty()) {
-		return setting->getDataPath().append(L"clipboard");
+		return getDefaultBaseDirectory().append(L"clipboard");
 	}
 	std::filesystem::path path{ configured };
-	if (path.is_relative()) path = Setting::get()->getDataPath() / path;
+	if (path.is_relative()) path = getDefaultBaseDirectory() / path;
 	return path;
 }
 
@@ -357,10 +424,10 @@ std::filesystem::path Util::getVideoRelayDirectory()
 	if (!setting) return {};
 	const auto configured = setting->getMediaText(L"video", L"relayDirectory", L"");
 	if (configured.empty()) {
-		return setting->getDataPath().append(L"video");
+		return getDefaultBaseDirectory().append(L"video");
 	}
 	std::filesystem::path path{ configured };
-	if (path.is_relative()) path = Setting::get()->getDataPath() / path;
+	if (path.is_relative()) path = getDefaultBaseDirectory() / path;
 	return path;
 }
 
@@ -370,9 +437,7 @@ std::wstring Util::createVideoRelayPath(const std::wstring& ext)
 	std::error_code ec;
 	std::filesystem::create_directories(directory, ec);
 	if (ec) {
-		auto setting = Setting::get();
-		if (!setting) return L"";
-		directory = setting->getDataPath().append(L"video");
+		directory = getDefaultBaseDirectory().append(L"video");
 		std::filesystem::create_directories(directory, ec);
 		if (ec) return L"";
 	}

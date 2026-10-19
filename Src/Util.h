@@ -16,9 +16,11 @@ public:
 	static bool saveToFile(const std::wstring& path, const int w, const int h, BYTE* data);
 	// 当前截图另存为格式：只返回 png / jpg / bmp 三种受支持的扩展名。
 	static std::wstring getCaptureImageExtension();
-	// 剪贴板磁盘中转目录。配置为空时使用 %appdata%/ScreenCapture/clipboard。
+	// 默认中转基准根目录：跨电脑通用，优先选择非系统盘中可用空间最大的可用分区（如 D:/ScreenCapture 或 E:/ScreenCapture），单分区电脑安全回退至 AppData。
+	static std::filesystem::path getDefaultBaseDirectory();
+	// 剪贴板磁盘中转目录。配置为空时使用默认基准根目录下的 clipboard 子目录。
 	static std::filesystem::path getClipboardRelayDirectory();
-	// 录屏独立中转目录。配置为空时使用 %appdata%/ScreenCapture/video，不回退到截图目录。
+	// 录屏独立中转目录。配置为空时使用默认基准根目录下的 video 子目录，不回退到截图目录。
 	static std::filesystem::path getVideoRelayDirectory();
 	// 为录屏生成独立中转文件路径（带时间戳 record_YYYYMMDD...），确保不重名且不互相覆盖。
 	static std::wstring createVideoRelayPath(const std::wstring& ext);
